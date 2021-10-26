@@ -2,6 +2,7 @@
   "name": "@metaplex/cli",
   "version": "0.0.2",
   "main": "./build/cli.js",
+  
   "license": "MIT",
   "bin": {
     "metaplex": "./build/candy-machine-cli.js"

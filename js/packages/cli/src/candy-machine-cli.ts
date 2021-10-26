@@ -74,6 +74,7 @@ programCommand('upload')
   .option('--no-retain-authority', 'Do not retain authority to update metadata')
   .option('--no-mutable', 'Metadata will not be editable')
   .action(async (files: string[], options, cmd) => {
+    console.log(cmd.opts());
     const {
       number,
       keypair,
@@ -419,7 +420,7 @@ programCommand('show')
       //@ts-ignore
       log.info('authority: ', machine.authority.toBase58());
       //@ts-ignore
-      log.info('wallet: ', machine.wallet.toBase58());
+      log.info('wallet: ', machine.wallet1.toBase58());
       //@ts-ignore
       log.info(
         'tokenMint: ',
@@ -487,7 +488,11 @@ programCommand('create_candy_machine')
     'SPL token account that receives mint payments. Only required if spl-token is specified.',
   )
   .option(
-    '-s, --sol-treasury-account <string>',
+    '-s1, --sol-treasury-account1 <string>',
+    'SOL account that receives mint payments.',
+  )
+  .option(
+    '-s2, --sol-treasury-account2 <string>',
     'SOL account that receives mint payments.',
   )
   .action(async (directory, cmd) => {
@@ -498,7 +503,8 @@ programCommand('create_candy_machine')
       cacheName,
       splToken,
       splTokenAccount,
-      solTreasuryAccount,
+      solTreasuryAccount1,
+      solTreasuryAccount2,
     } = cmd.opts();
 
     let parsedPrice = parsePrice(price);
@@ -507,10 +513,12 @@ programCommand('create_candy_machine')
     const walletKeyPair = loadWalletKey(keypair);
     const anchorProgram = await loadCandyProgram(walletKeyPair, env);
 
-    let wallet = walletKeyPair.publicKey;
+    let wallet1 = walletKeyPair.publicKey;
+    let wallet2 = walletKeyPair.publicKey;
+
     const remainingAccounts = [];
     if (splToken || splTokenAccount) {
-      if (solTreasuryAccount) {
+      if (solTreasuryAccount1) {
         throw new Error(
           'If spl-token-account or spl-token is set then sol-treasury-account cannot be set',
         );
@@ -536,6 +544,7 @@ programCommand('create_candy_machine')
       );
 
       const mintInfo = await token.getMintInfo();
+      console.log(mintInfo);
       if (!mintInfo.isInitialized) {
         throw new Error(`The specified spl-token is not initialized`);
       }
@@ -549,7 +558,7 @@ programCommand('create_candy_machine')
         );
       }
 
-      wallet = splTokenAccountKey;
+      wallet1 = splTokenAccountKey;
       parsedPrice = parsePrice(price, 10 ** mintInfo.decimals);
       remainingAccounts.push({
         pubkey: splTokenKey,
@@ -558,15 +567,24 @@ programCommand('create_candy_machine')
       });
     }
 
-    if (solTreasuryAccount) {
-      wallet = new PublicKey(solTreasuryAccount);
+    console.log(solTreasuryAccount1);
+    console.log(solTreasuryAccount2);
+
+    if (solTreasuryAccount1) {
+      wallet1 = new PublicKey(solTreasuryAccount1);
+      wallet2 = new PublicKey(solTreasuryAccount2);
     }
+
+    console.log(wallet1);
 
     const config = new PublicKey(cacheContent.program.config);
     const [candyMachine, bump] = await getCandyMachineAddress(
       config,
       cacheContent.program.uuid,
     );
+
+    console.log(candyMachine);
+
     await anchorProgram.rpc.initializeCandyMachine(
       bump,
       {
@@ -578,7 +596,8 @@ programCommand('create_candy_machine')
       {
         accounts: {
           candyMachine,
-          wallet,
+          wallet1,
+          wallet2,
           config: config,
           authority: walletKeyPair.publicKey,
           payer: walletKeyPair.publicKey,

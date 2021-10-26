@@ -96,10 +96,13 @@ export const getCandyMachineAddress = async (
   config: anchor.web3.PublicKey,
   uuid: string,
 ): Promise<[PublicKey, number]> => {
-  return await anchor.web3.PublicKey.findProgramAddress(
+  console.log(config);
+  const address = await anchor.web3.PublicKey.findProgramAddress(
     [Buffer.from(CANDY_MACHINE), config.toBuffer(), Buffer.from(uuid)],
     CANDY_MACHINE_PROGRAM_ID,
   );
+  console.log('candy machine address: ', address);
+  return address;
 };
 
 export const getConfig = async (
@@ -285,6 +288,7 @@ export async function loadCandyProgram(walletKeyPair: Keypair, env: string) {
   const provider = new anchor.Provider(solConnection, walletWrapper, {
     preflightCommitment: 'recent',
   });
+  console.log('CANDY_MACHINE_PROGRAM_ID: ', CANDY_MACHINE_PROGRAM_ID);
   const idl = await anchor.Program.fetchIdl(CANDY_MACHINE_PROGRAM_ID, provider);
 
   const program = new anchor.Program(idl, CANDY_MACHINE_PROGRAM_ID, provider);
